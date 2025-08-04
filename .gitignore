@@ -1,0 +1,13 @@
+# Ignore virtual environment
+.venv/
+
+# Ignore data directories
+pianorolls/
+pitch/
+
+
+
+*.zip
+*.mid
+*.npy
+*.keras
