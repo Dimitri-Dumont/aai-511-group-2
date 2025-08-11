@@ -1,25 +1,30 @@
-# Classical Composer Classification using Multi-Branch CNN
+# Classical Composer Classification using Multi-Branch CRNN
 
 ## Project Overview
 
-This project implements a deep learning system for classifying classical music compositions by composer using a multi-branch Convolutional Neural Network (CNN) architecture. The system processes MIDI files and extracts both temporal patterns (piano-roll) and harmonic features (pitch class distribution) to achieve accurate composer identification.
+This project implements a deep learning system for classifying classical music compositions by composer using a multi-branch Convolutional Recurrent Neural Network (CRNN) architecture. The system processes MIDI files using a chunked data pipeline and combines CNN feature extraction with LSTM temporal modeling to achieve accurate composer identification.
 
 ### Key Features
+- **CRNN Architecture**: Combines CNN layers for spatial feature extraction with LSTM layers for temporal modeling
+- **Chunked Data Pipeline**: Uses overlapping chunks for data augmentation and memory optimization
 - **Multi-modal Input Processing**: Combines piano-roll sequences (128×1000×1) and pitch class distributions (12-dimensional)
 - **Late Fusion Architecture**: Processes different feature types in separate branches before combining
-- **Class Imbalance Handling**: Uses class weights to address dataset imbalance
-- **High Performance**: Achieves 80.67% overall accuracy on validation set
+- **Memory Optimization**: Balanced sampling strategy reduces memory usage while maintaining data integrity
+- **Data Leakage Prevention**: Ensures chunks from the same original file don't appear in both train/validation sets
 
 ### Dataset
-- **4 Composers**: Bach (1024 files), Beethoven (212 files), Chopin (136 files), Mozart (256 files)
-- **Total Samples**: 1,628 MIDI files
-- **Data Split**: 80% training, 20% validation
+- **4 Composers**: Bach, Beethoven, Chopin, Mozart
+- **Original Files**: 1,628 MIDI files
+- **Chunked Data**: ~15,000 chunks with overlapping windows for data augmentation
+- **Memory Optimization**: Balanced sampling reduces Bach overrepresentation while preserving underrepresented composers
+- **Data Split**: 80% training, 20% validation with no-leakage guarantee at file level
 
 ### Input Data Format
-- **Piano-Roll**: 2D representation of MIDI data (128 notes × 1000 time steps)
-- **Pitch Class Distribution**: 12-dimensional vector representing harmonic content
+- **Piano-Roll**: 2D representation of MIDI data (128 notes × 1000 time steps) processed in overlapping chunks
+- **Pitch Class Distribution**: 12-dimensional vector representing harmonic content per chunk
+- **Chunking Strategy**: 10% overlap between consecutive chunks for data augmentation
 
-## Model Architecture
+## Model Architecture (CRNN)
 
 ```
 ┌─────────────────┐    ┌─────────────────┐
@@ -29,7 +34,7 @@ This project implements a deep learning system for classifying classical music c
 └─────────┬───────┘    └─────────┬───────┘
           │                      │
     ┌─────▼─────┐           ┌────▼────┐
-    │ Conv2D    │           │ Dense   │
+    │ CNN Layers│           │ Dense   │
     │ (32→64→128)│           │ (64→32→16) │
     │ + BN + ReLU│           │ + BN + ReLU│
     │ + MaxPool  │           │ + Dropout │
@@ -37,8 +42,14 @@ This project implements a deep learning system for classifying classical music c
     └─────┬─────┘           └────┬────┘
           │                      │
     ┌─────▼─────┐                │
-    │Global Avg │                │
-    │   Pool    │                │
+    │ Reshape   │                │
+    │ for LSTM  │                │
+    └─────┬─────┘                │
+          │                      │
+    ┌─────▼─────┐                │
+    │LSTM (128) │                │
+    │ Temporal  │                │
+    │ Modeling  │                │
     └─────┬─────┘                │
           │                      │
     ┌─────▼─────┐                │
@@ -49,7 +60,7 @@ This project implements a deep learning system for classifying classical music c
           └─────────┬────────────┘
                     │
               ┌─────▼─────┐
-              │Concatenate│
+              │Late Fusion│
               │(128 + 16) │
               └─────┬─────┘
                     │
@@ -64,15 +75,25 @@ This project implements a deep learning system for classifying classical music c
               └───────────┘
 ```
 
-### Performance Metrics
-- **Overall Accuracy**: 80.67%
-- **Per-Class Performance**:
-  - Bach: 92.68% recall, 89.62% precision
-  - Beethoven: 34.88% recall, 68.18% precision  
-  - Chopin: 81.48% recall, 75.86% precision
-  - Mozart: 70.59% recall, 57.14% precision
+### Architecture Details
+- **CNN Branch**: Extracts spatial features from piano-roll data using convolutional layers
+- **LSTM Layer**: Captures temporal dependencies and long-term patterns in musical sequences
+- **Dense Branch**: Processes pitch class distributions for harmonic analysis
+- **Late Fusion**: Combines features from both branches for final classification
+- **Total Parameters**: ~700K trainable parameters optimized for musical pattern recognition
 
-**Note**: Beethoven's lower recall suggests the model struggles to identify Beethoven pieces correctly, likely due to the smaller dataset size (212 files vs. 1024 for Bach).
+### Data Processing Pipeline
+
+1. **MIDI Extraction**: Automated extraction and organization of MIDI files by composer
+2. **Chunked Preprocessing**: 
+   - Creates overlapping chunks (10% overlap) for data augmentation
+   - Handles variable-length pieces without truncation
+   - Generates multiple training samples per original file
+3. **Feature Extraction**:
+   - Piano-roll representation: 128 notes × 1000 time steps per chunk
+   - Pitch class distributions: 12-dimensional harmonic features per chunk
+4. **Memory Optimization**: Balanced sampling strategy reduces memory footprint
+5. **Data Integrity**: File-level train/validation split prevents data leakage
 
 ---
 
@@ -154,14 +175,19 @@ This project implements a deep learning system for classifying classical music c
    jupyter notebook
    ```
 
-3. **Open and run `Team_project.ipynb`**
+3. **Open and run the appropriate notebook:**
+   - `composer_classifier_optimized.ipynb` - Latest CRNN implementation with chunked data pipeline
+   - `Team_project_cnn.ipynb` - CNN implementation
+   - `Team_project_crnn.ipynb` - CRNN implementation
 
 ## Project Files
 
-- `Team_project.ipynb` - Main Jupyter notebook containing the complete project implementation
+- `composer_classifier_optimized.ipynb` - Latest optimized CRNN implementation with chunked data pipeline
+- `Team_project_cnn.ipynb` - CNN implementation
+- `Team_project_crnn.ipynb` - CRNN implementation
 - `requirements.txt` - Python dependencies for the project
 - `cuda.ps1` - PowerShell script for CUDA/GPU setup (Windows only)
 - `midi_subset/` - Directory containing the MIDI dataset organized by composer
-- `pianorolls/` - Generated piano-roll representations
-- `pitch/` - Generated pitch class distributions
+- `pianorolls/` & `pianorolls2_0/` - Generated piano-roll representations (original and chunked)
+- `pitch/` & `pitch2_0/` - Generated pitch class distributions (original and chunked)
 
