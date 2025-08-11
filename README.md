@@ -183,11 +183,9 @@ This project implements a deep learning system for classifying classical music c
 ## Project Files
 
 - `composer_classifier_optimized.ipynb` - Latest optimized CRNN implementation with chunked data pipeline
-- `Team_project_cnn.ipynb` - CNN implementation
-- `Team_project_crnn.ipynb` - CRNN implementation
 - `requirements.txt` - Python dependencies for the project
 - `cuda.ps1` - PowerShell script for CUDA/GPU setup (Windows only)
 - `midi_subset/` - Directory containing the MIDI dataset organized by composer
-- `pianorolls/` & `pianorolls2_0/` - Generated piano-roll representations (original and chunked)
-- `pitch/` & `pitch2_0/` - Generated pitch class distributions (original and chunked)
+- `pianorolls/` & `pianorolls2_0/` - Generated piano-roll representations (chunked)
+- `pitch/` & `pitch2_0/` - Generated pitch class distributions (original)
 
